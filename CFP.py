@@ -47,12 +47,14 @@ st.markdown("""
 # --------------------------------------------------
 # Loading Model
 # --------------------------------------------------
-model = joblib.load("cab_fare_model.pkl")
-
+#   model = joblib.load("cab_fare_model.pkl")
+import os
+model_path = os.path.join(os.path.dirname(__file__), "cab_fare_model.pkl")
+model = joblib.load(model_path)
 # --------------------------------------------------
 # NYC Locations
 # --------------------------------------------------
-NYC_LOCATIONS = {
+NYC_LOCATIONS = {   
     "Times Square": (40.7580, -73.9855),
     "Central Park": (40.7851, -73.9683),
     "JFK Airport": (40.6413, -73.7781),
