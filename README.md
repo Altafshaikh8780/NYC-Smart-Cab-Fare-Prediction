@@ -6,7 +6,17 @@ A Machine Learning based dynamic cab fare prediction system with an interactive 
 https://nyc-cab-fare-system.streamlit.app
 
 ---
+## 📸 Application Screenshot
 
+<p align="center">
+  <img src="app_screenshot1.png" width="900">
+</p>
+
+<p align="center">
+  <img src="app_screenshot2.png" width="900">
+</p>
+
+---
 ## 📌 Project Overview
 
 NYC Smart Cab Fare System predicts taxi fares using a trained Machine Learning model combined with real-world business logic rules such as:
