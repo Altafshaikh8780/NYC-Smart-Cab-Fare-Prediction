@@ -5,6 +5,7 @@ import pandas as pd
 import pydeck as pdk
 from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime
+import os
 
 # --------------------------------------------------
 # Page Configuration
@@ -45,12 +46,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# Loading Model
+# Load Model
 # --------------------------------------------------
-#   model = joblib.load("cab_fare_model.pkl")
-import os
 model_path = os.path.join(os.path.dirname(__file__), "cab_fare_model.pkl")
 model = joblib.load(model_path)
+
 # --------------------------------------------------
 # NYC Locations
 # --------------------------------------------------
@@ -66,7 +66,7 @@ NYC_LOCATIONS = {
 }
 
 # --------------------------------------------------
-# Haversine Distance
+# Haversine Function
 # --------------------------------------------------
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -82,11 +82,10 @@ def haversine(lat1, lon1, lat2, lon2):
 # --------------------------------------------------
 st.title("🚕 NYC Smart Cab Fare System")
 st.caption("Machine Learning + Dynamic Pricing Engine")
-
 st.divider()
 
 # --------------------------------------------------
-# Responsive Layout
+# Input Layout
 # --------------------------------------------------
 col1, col2, col3 = st.columns([2,2,1])
 
@@ -106,18 +105,16 @@ weather = st.selectbox(
 )
 
 # --------------------------------------------------
-# Coordinates
+# Coordinates & Distance
 # --------------------------------------------------
 p_lat, p_lon = NYC_LOCATIONS[pickup]
 d_lat, d_lon = NYC_LOCATIONS[dropoff]
 
 distance = haversine(p_lat, p_lon, d_lat, d_lon)
-
-# Dynamic Zoom
 zoom_level = 12 if distance < 5 else 10
 
 # --------------------------------------------------
-# Route Map (PyDeck)
+# Map Display
 # --------------------------------------------------
 route_points = pd.DataFrame({
     "lat": [p_lat, d_lat],
@@ -159,13 +156,56 @@ st.pydeck_chart(pdk.Deck(
 st.divider()
 
 # --------------------------------------------------
-# Auto Prediction (Reactive)
+# Prediction Section
 # --------------------------------------------------
+
+
 if pickup and dropoff:
 
-    hour = datetime.now().hour
+    # Time Simulator
+    st.markdown("### 🕒 Trip Time Simulator")
 
-    features = np.array([[
+    hour = st.slider(
+        "Select Trip Time",
+        min_value=0,
+        max_value=23,
+        value=14,
+        format="%d:00"
+    )
+
+    display_time = datetime.strptime(str(hour), "%H").strftime("%I:00 %p")
+
+    if hour >= 20 or hour <= 6:
+        badge_color = "#1e293b"
+        badge_text = f"🌙 Night Time Selected: {display_time}"
+    elif 16 <= hour <= 19:
+        badge_color = "#7c2d12"
+        badge_text = f"🚦 Peak Hour (Surge Active): {display_time}"
+    else:
+        badge_color = "#065f46"
+        badge_text = f"☀️ Normal Pricing Time: {display_time}"
+
+    st.markdown(f"""
+        <div style="
+            background-color:{badge_color};
+            padding:10px 20px;
+            border-radius:12px;
+            color:white;
+            display:inline-block;
+            font-weight:bold;">
+            {badge_text}
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+    
+    
+    #for making the prediction work on real time 
+    # \\ use this and comment the above code !!
+    # hour = datetime.now().hour
+
+    # ML Prediction
+    features = np.array([[ 
         p_lat,
         p_lon,
         d_lat,
@@ -176,18 +216,12 @@ if pickup and dropoff:
     ]])
 
     base_fare = model.predict(features)[0]
+    base_fare = max(base_fare, 3.0)
 
-    # Minimum Fare
-    if base_fare < 3.0:
-        base_fare = 3.0
-
-    # Night Charge
+    # Dynamic Pricing
     night_charge = 2.5 if (hour >= 20 or hour <= 6) else 0
-
-    # Surge
     surge_multiplier = 1.2 if (16 <= hour <= 19) else 1
 
-    # Weather
     if "Rainy" in weather:
         weather_multiplier = 1.15
     elif "Stormy" in weather:
@@ -195,22 +229,20 @@ if pickup and dropoff:
     else:
         weather_multiplier = 1
 
-    # Extra Business Logic
     booking_fee = 1.5
     passenger_charge = passengers * 0.5
 
     final_fare = ((base_fare + night_charge + booking_fee + passenger_charge)
                   * surge_multiplier * weather_multiplier)
 
-    # --------------------------------------------------
-    # Premium Fare Card
-    # --------------------------------------------------
+    # Fare Display
     st.markdown(f"""
     <div class="fare-card">
         <div class="fare-label">Final Estimated Fare</div>
         <div class="fare-amount">${round(final_fare,1)}</div>
     </div>
     """, unsafe_allow_html=True)
+
     st.divider()
     st.markdown("### 📊 Fare Breakdown")
 
